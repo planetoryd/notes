@@ -13,14 +13,15 @@ walkthrough
 
 Packet Dropping
 
-- Firstly, the list of IP addresses must be kept up-to-date
-  - all of the other websites that share the same IP address will also be blocked.
+- the list of IP addresses must be kept up-to-date
+- all of the other websites that share the same IP address will also be blocked.
   - 69.8% of the websites for .com, .org and .net domains shared an IP address with 50 or more other websites.
 
 Deep packet inspection
 
-- Identify P2P to do QoS
+- Identify P2P traffic to do QoS
 - Statistical, The SPID algorithm can detect the application layer protocol (layer 7) by signatures (a sequence of bytes at a particular offset in the handshake), by analyzing flow information (packet sizes, etc.) and payload statistics (how frequently the byte value occurs in order to measure entropy) from pcap files.
+- Deep Learning for Encrypted Traffic Classification
 
 # TLS
 
@@ -123,6 +124,33 @@ With improved performance.
 
 A client with an ephemeral keypair, and a server with a long-term keypair and an ephemeral keypair
 
+#### Identification
+
+> https://doi.org/10.1007/s11227-018-2268-y
+
+> Real-time identification of three Tor pluggable
+> transports using machine learning technique
+
+Wang et al. [16] propose an approach
+for recognizing tor and its obfuscates using deep analysis of payload. While their results
+are promising in terms of recognition rates, the need for computationally expensive
+features such as entropy of payload is a significant issue. As an alternative for DPI,
+machine learning methods can be of help to identify plugins. These techniques use a
+bunch of flow statistics such as mean packet size and packet inter-arrival time that are
+independent of flow contents.
+
+We present an empirical study on detection of Obfs3, **Obfs4**, and ScrambleSuit.
+
+Another fact that Fig. 7 reveals is that detection of Obfs3 is slightly harder than
+Obfs4 and ScrambleSuit. This may be attributed to the fact that Obfs3 does not alter
+the underlying traffic statistics.
+
+### Sosistab
+
+https://github.com/geph-official/sosistab
+
+Sosistab is an unreliable, obfuscated datagram transport over UDP and TCP. obfs4-like
+
 ### Meek bridge
 
 > The meek protocol is also likely vulnerable to statistical attacks based on request/response timing and traffic volume as no attempts are made to mask traffic volume, and the client driven poll timing is rather distinctive.
@@ -131,15 +159,59 @@ One domain appears on the “outside” of an HTTPS request—in the DNS request
 
 The client, intermediate web service, and destination proxy are uncontrolled by the censor.
 
+meek is just one of several circumvention systems using domain fronting. You can read about the technique in general here.
+**Psiphon** uses domain fronting in some places. It has a fork of meek-client and meek-server as well as a port of meek-client to Java for Android.
+**Flashlight** from Lantern is an HTTP proxy that uses domain fronting. enproxy is a TCP-over-HTTP tunnel.
+**FireFly** Proxy is a meek-like proxy implemented in Python. It is designed against the Great Firewall of China.
+GoAgent
+
 ### --
 
 https://www.bamsoftware.com/papers/fronting/#sec:threatmodel
+
+1. Obfuscation / Avoid blacklist
+   - It is expensive to distinguish it from other traffic
+2. Mimicry / Exploiting whitelist
+   - It is trivial to distinguish it from other traffic
+   - If it fails to mimic, the outcome is catastrophic
 
 The other strategy against DPI is the steganographic one: look like something the censor allows. fteproxy uses format-transforming encryption to encode data into strings that match a given regular expression, for example a regular-expression approximation of HTTP. StegoTorus transforms traffic to look like a cover protocol using a variety of special-purpose encoders
 
 > address-based blocking
 
 BridgeDB uses CAPTCHAs and other rate-limiting measures, and over short time periods, always returns the same bridges to the same requester, preventing enumeration by simple repeated queries
+
+> The Parrot is Dead:
+> Observing Unobservable Network Communications
+
+Convincingly mimicking a sophisticated distributed system like Skype, with
+multiple, inter-dependent sub-protocols and correlations, is
+an insurmountable challenge. To win, the censor needs only
+to find a few discrepancies, while the parrot must satisfy a
+daunting list of imitation requirements.
+
+They (China) also enumerated and blocked all bridge IP addresses provided via
+Gmail, leaving Tor with only the social network distribution
+strategy and private bridge
+
+Furthermore, Iran
+repeatedly blocks all encrypted traffic.
+
+Censors can even unplug an entire country from the
+Internet, as in Egypt and Libya.
+
+One promising alternative is to not mimic, but **run the
+actual protocol**, i.e., move the hidden content higher in
+the protocol stack. For example, FreeWave [28] hides data
+in encrypted voice or video payloads sent over genuine
+Skype, while SWEET [29] embeds it in email messages.
+
+This is called **Tunneling** in *MultiProxy: a collaborative approach to censorship
+circumvention* 
+
+> https://www.bamsoftware.com/papers/fronting/
+>
+> https://repository.tudelft.nl/islandora/object/uuid:858f16c9-71f1-4d7f-8baf-d4fa0a0687e3/datastream/OBJ/download
 
 # On GFW policy-making
 
