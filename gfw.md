@@ -218,3 +218,10 @@ circumvention*
 - Why don't they adopt a harsher policy or just whitelist.
   - They censor carefully, using probing, instead of banning on sight
 - The policy is to censor carefully. Will it be changed ?
+
+# Inherent problem of mimcry
+
+- A whitelisted protocol has many features
+- The parrot has to mimic all the features
+- One discrepancy is enough to negate the mimicry.
+

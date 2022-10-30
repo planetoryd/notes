@@ -1,6 +1,7 @@
 ## Summaries, readings
 
 - [Great firewall of China](./gfw.md)
+- [Overview of dweb](./dweb.md)
 
 ## Random
 
@@ -8,3 +9,4 @@
 - https://github.com/magmide/magmide
     - Truly eternal software
     - Safe foreign code execution without sandboxing
+- Shadowtls, naiveproxy, xtls
