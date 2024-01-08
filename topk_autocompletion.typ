@@ -1,6 +1,4 @@
 
-#set page("a4")
-
 - Paper from http://www.vldb.org/pvldb/vol9/p828-deng.pdf
 
 - Indeed I must use a personal notation to serialize my ideas cause my brain has too small a cache.
@@ -14,8 +12,6 @@
 - a deterministic finite automaton (DFA)—also known as deterministic finite acceptor 
 
 - That means, a levenshtein automaton is a state machine that you feed a sequence of bytes, and it can reach a state of acceptance. #link("https://julesjacobs.com/2015/06/17/disqus-levenshtein-simple-and-fast.html")[see]
-
-- Fewnwick tree is a tree where you can add elements. The tree stores nodes in an array, and you can get sum of $[0,n]$ with $O(log n)$ time
 
 = Top-k completion
 
@@ -272,3 +268,101 @@ $
  cases(forall s in R\, "PED"(q,s)<tau => min_(m_q,m in M(q,s)) < tau,
   forall m (i,n,"ed")\, m_q <= tau <=> m in A_q) => "All s" in R "is reachable from" cal(A)
 $
+
+= Top K
+
+$b_i = max_(s in R_i)"PED"(q_i,s)$, where $R_i$ is $q_i$'s Top-K results.
+
+$b_i = cases(b_(i-1),b_(i-1)+1)$
+
+$forall s in R_(i-1), "PED"(q_i,s) = "PED"(q_(i-1),s) + 1 <= b_(i-1) + 1$ where $|R_(i-1)|=k$
+
+They are the upper bound of PED for $R_i$, as we can always take $R_(i-1)$ as $R_i$. 
+
+$forall s, "PED"(q_i,s)>="PED"(q_(i-1),s) =>_("but why") b_i >= b_(i-1)$ 
+
+For $R_i$,
+
++ Find results $s,"PED"(q,s)<b_(i-1)$
++ Find results $s,"PED"(q,s)=b_(i-1)$, update $b_i$
++ Find results $s,"PED"(q,s)=b_(i-1)+1$, update $b_i$
+
+b-matching, (i,n,ed), $"iff" "ed" <= b$
+
+$P(q,b)$ denotes the set of *all* b-matchings of q
+- for such a matching, $(i,n,"ed")$, $i_m<i_q$
+- it is exhaustive
+
+$forall s, "PED"(q,s) =_(m "is the last matching") "ed"_m + |q|-i_m <= b, exists m(i,n,"ed"_m), "ed"_m <= b$
+
+Therefore from $P(q,b)$ we can get $R$, exhaustively.
+
+== Calculating b-matching 
+=
+
+
+=== 1. $P(q_i,b-1)$
+
+for an $m(i,n,"ed") in P(q_i,b-1), text(cases(i_m<i_q =>_("ed"<=b-1<=b) m in P(q_(i-1),b) \, "the first kind", i_m=i_q), size: #1.5em)$
+
+By $P(i-1,b)$ being exhaustive, the first kind can be all got from $P(i-1,b)$
+
+For the second case, descendents of matchings are enumerated. 
+
+for $m'=(i',n',"ed"') in P(q_(i-1),b)$, find every $n_d$
+
+$text(cases(n_d (n'') "is a descendent of " n', m'(i-1,|n_d|-1) <= b-1, n_d."char"=q[i]), size: #1.2em)$
+
+for $m(i,n), m_(a,b) =_min "ed" "if" a=i,b=n$
+
+$"ED"(q, n_d) =_"Lemma3" "ED"(q_(i-1), n_d."parent") = min_(m' in M(q_(i-1),n_d."parent"))m'(i-1, |n_d|-1)$
+
+In the second case, $i_m = i_q= i'' ("in paper")$
+
+$"ed"'':="ED"(q_i, n_d)$. Thus this produces the part of $ P(q_i,b-1)$ where $i_m=i_q$
+
+=== 2. $P(q_i,b)$
+
+$P(q_i,b) supset.eq P(q_i,b-1) "by def"$
+
+For $m(q,n)$, denote $m(q_(i-1),n."parent")$ as $m_(-1)$
+
+$"ED"(m'')="ED"(m''_(-1))$
+
+For a matching $m(i,n,"ed")$
+
+$text(cases("ed"="ED"(q_i,n."prefix")=m_(q,n),q[i]=n."char",), size: #1.2em)$
+
+Denote $M=M(q_i'',n'')$
+
+Find $m' in M_(-1)$ st. $"ed"'' = m'_(i''-1,|n''|-1)  text(cases(="ed"' (m'=m''_(-1)), > "ed"'), size: #1.2em)$
+
+Denote the goal, exact b-matchings to be $m''=(i'',n'',"ed"''=b) in P(q_i,b)- P(q_i,b-1)$
+
+-  By definition, $q[i'']=n''."char"$
+
+Enumerate every (b-1)-matchings, $m'(i',n',"ed"') in P(q_i,b-1)$
+
+Find all descendents $n''$ such that 
+
+$text(cases(q[i'']=n''."char",
+m'(i''-1,|n''|-1)=b,
+ (i'',n'',*) in.not P(q_i,b-1)),
+ size: #1.2em)
+$
+
+$text(cases(
+(i'',n'',*) in.not P(q_i,b-1) => "ED"(q_i'',n'')>b-1 => "ED"(q_i'',n'') >= b,
+m'(i''-1,|n''|-1)=b="ED"+ k_(>=0) => "ED"_m' <= b,
+ reverse: #true) => "ed"'' = b
+,size: #1.2em)
+$
+
+$i'', n''$ etc. are variables to be solved.
+
+Till now, all three parts have been produced.
+
++ $P(q, b-1)$ 
+  + $i_m< i$, exactly $P(q_(i-1),b)$
+  + $i_m=i$, enumerate descendents of $P(q_(i-1),b)$
++ $P(q,b) - P(q,b-1)$, enumerate descendents of $P(q,b-1)$
