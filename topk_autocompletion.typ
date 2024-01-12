@@ -362,7 +362,26 @@ $i'', n''$ etc. are variables to be solved.
 
 Till now, all three parts have been produced.
 
+$i_m$ means the $i$ for the matching to be produced.
+
 + $P(q, b-1)$ 
   + $i_m< i$, exactly $P(q_(i-1),b)$
   + $i_m=i$, enumerate descendents of $P(q_(i-1),b)$
 + $P(q,b) - P(q,b-1)$, enumerate descendents of $P(q,b-1)$
+
+=== `best_edit_distances`
+
+For each node/prefix, multiple matchings may be visited, with different $i$ (query_len).
+
+The map takes the smallest DED, which is ED.
+
+```rs
+        let bound = matching.deduced_edit_distance(
+                        query_len - 1,
+                        node.depth.saturating_sub(1) as usize,
+                    );
+```
+
+$"ed"(q,n)="ed"(q_(-1),n_(-1))=min_(m in M(q,n))(m_(|q|-1,|n|-1))$
+
+It iterates over entire $M$, which supposedly should get the min.

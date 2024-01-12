@@ -1,0 +1,98 @@
+#check Nat
+#check List Nat
+
+#check Type
+#check List Type
+
+def cons (α : Type) (a : α) (as : List α) : List α :=
+  List.cons a as
+
+#check cons
+
+-- (α : Type) → α → List α → List α
+-- Dependent function type
+-- Unlike Nat -> Nat. α is a parameter
+
+universe u
+def Lst (α : Type u) : Type u := List α
+-- To generalize over higher order types (or whatever it is), use universe
+
+def ident {α : Type u} (x : α) := x
+#check ident         -- ?m → ?m
+#check ident 1       -- Nat
+#check ident "hello" -- String
+#check @ident        -- {α : Type u_1} → α → α
+
+variable {α : Type u}
+
+def infernot {a: Nat} := a
+
+#eval @infernot 2
+
+variable (p q: Prop)
+
+#check p→ q
+
+variable (x y: Sort 1)
+#check x→y
+
+variable (x y: Sort 0)
+#check x→y
+
+theorem t1 {p q : Prop} (hp : p) (hq : q) : p := hp
+
+theorem t2 : ∀ {p q : Prop}, p → q → p :=
+  fun {p q : Prop} (hp : p) (hq : q) => hp -- params generated
+
+-- p, q are params, and other params are of types dependent on them
+
+theorem tx (p q : Prop) (hp : p) (hq : q) : p := hp
+
+variable (p q r s : Prop)
+
+#check tx
+#check tx r s -- types and values are the same thing
+-- first two arguments applied, producing a new function
+
+-- propositions are of type Prop. P: Prop
+-- proofs of propositions : P
+-- any two instances of type P are definitionly equal
+
+
+example (hp : p) (hq : q) : p ∧ q := And.intro hp hq
+
+-- build a p ^ q with hp and hq
+
+example (hp : p) (hq : q) : p ∧ q := ⟨hp, hq⟩ -- anon cosntructor
+
+-- Structure is a collection of fields
+-- Accessor function takes a structure and returns the field
+
+variable (p q r : Prop)
+
+example (h : p ∨ q) : q ∨ p :=
+  Or.elim h
+    (fun hp : p =>
+      show q ∨ p from Or.intro_right q hp)
+    (fun hq : q =>
+      show q ∨ p from Or.intro_left p hq)
+
+-- existence of fn p → q ∨ p represents that we can construct a proof that q ∨ p from p
+-- therefore p is the premise, q ∨ p is the conclusion
+-- eliminates the or with two implications to a common conclusion
+
+#check False
+
+variable (hp: p) (hnp: ¬p)
+
+#check ¬p
+#check hnp hp
+
+example (hpq : p → q) (hnq : ¬q) : ¬p :=
+  fun hp : p =>
+  show False from hnq (hpq hp)
+
+example (h : p ∧ q) : q ∧ p :=
+  have hp : p := h.left -- wraps them in lambdas and stores sub-goal proofs in arguments
+  have hq : q := h.right
+  show q ∧ p from And.intro hq hp
