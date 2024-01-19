@@ -385,3 +385,4 @@ The map takes the smallest DED, which is ED.
 $"ed"(q,n)="ed"(q_(-1),n_(-1))=min_(m in M(q,n))(m_(|q|-1,|n|-1))$
 
 It iterates over entire $M$, which supposedly should get the min.
+

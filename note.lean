@@ -293,6 +293,7 @@ example : (∃ x, p x ∨ q x) ↔ (∃ x, p x) ∨ (∃ x, q x) :=
   ⟩
 
 example : (∀ x, p x) ↔ ¬ (∃ x, ¬ p x) := sorry
+
 example : (∃ x, p x) ↔ ¬ (∀ x, ¬ p x) := sorry
 example : (¬ ∃ x, p x) ↔ (∀ x, ¬ p x) := sorry
 example : (¬ ∀ x, p x) ↔ (∃ x, ¬ p x) := sorry
@@ -380,3 +381,14 @@ example : 2 + 3 = 5 := by
   generalize h : 3 = x
   -- goal is x : Nat, h : 3 = x ⊢ 2 + x = 5
   rw [← h]
+
+example (p q : Prop) : p ∧ q → q ∧ p := by
+  intro h
+  cases h with
+  | intro hp hq => constructor; exact hq; exact hp
+
+example (f : Nat → Nat) (k : Nat) (h₁ : f 0 = 0) (h₂ : k = 0) : f k = 0 := by
+  rw [h₂] -- replace k with 0
+  rw [h₁] -- replace f 0 with 0
+
+#check @Nat.rec -- rec, to construct
