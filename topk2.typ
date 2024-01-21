@@ -74,4 +74,135 @@ $tack "for certain depth of nodes", forall m in A(q_(i-1)), m_(i-1,|n|-1) > tau 
 $tack "for" m_1(i_1,n_1) in A(q_(i-1)), forall m_2 :=(i_2=|q|, n=(c,d)), 
 d in.not [n_1.d+1,n_1.d+1+tau] => m_2."ed" > tau$
 
-$m_2(|q|)=m."ed"+|q|-m.i=m."ed"$
+$
+m_2(|q|)=m_2."ed"+|q|-m_2.i=_(m_2.i=|q|)m_2."ed" \
+"lev"(a,b) in [ |\|a|-|b|\|, max(|a|,|b|)] \
+m_2."ed"="ed"(q,n) in [ |i_2-d|, max(i_2,d)]
+$
+
+The paper does utilize features of some particular edit distance algorithm, which are assumptions. TODO: list them later.
+
+No this is different that what is presented in the algorithm. 
+
+$m_2."ed"_min > tau => m_2."ed" > tau => |i_2-d| > tau $
+
+$tack d in.not [i_2-tau,i_2+tau] =K => m_2."ed" >_"certainly" tau \ 
+tack m_2."ed" <= tau => d in [i_2 -tau, i_2 + tau]
+$
+
+== Experiment 
+
+```rs
+    fn first_deducing(
+        &'stored self,
+        active_matching_set: &MatchingSet<'stored, UUU, SSS>,
+        character: char,
+        query_len: usize,
+        threshold: usize,
+    ) -> MatchingSet<'stored, UUU, SSS> {
+        let mut best_edit_distances = HashMap::<SSS, UUU>::new();
+        for matching in active_matching_set.iter() {
+            let node = matching.node;
+            let node_prefix_len = node.depth as usize;
+            // lines 5-7 of MatchingBasedFramework, also used in SecondDeducing
+            for depth in node_prefix_len + 1
+                ..=min(
+                    node_prefix_len + threshold + 1,
+                    self.inverted_index.max_depth(),
+                )
+            {
+                self.traverse_inverted_index(&matching, depth, character, |descendant| {
+                    // the depth of a node is equal to the length of its associated prefix
+                    let bound = matching.deduced_edit_distance(
+                        query_len - 1,
+                        node.depth.saturating_sub(1) as usize,
+                    );
+                    let bound = bound as UUU;
+                    let id = descendant.id() as SSS;
+                    let pred = depth >= query_len - threshold && depth <= query_len + threshold;
+                    if !pred {
+                        let k = bound <= threshold as UUU;
+                        if k {
+                            println!("breach");
+                        } 
+                    }
+```
+
+The above code, via hand-testing, seems to work.
+
+The `best_edit_distances` is a map, $n_2 -> "ed"$ 
+
+$
+m_2(i=|q|,n_2) \
+"by lev", n_2.d in K\
+forall n_2, "all " m_1 in A(q_(i-1)) "are visited" \
+n_2."ed" = min(m_1(i-1,|n|-1)) "one value per" m_1, |n|
+$
+
+Q4: I'm not sure what justifies the $[\|n|+1,|n|+1+tau]$
+
+$
+"for an " m_2(i=|q|,n_2), forall "s" in n_2, exists p = s_(|n|), s.t. "ed"(q,p) <= tau 
+  => s in R(q,T)
+$
+
+For other matchings, EDs are over $q_(k), k<i=|q|$. EDs over $q_i$ are not necessarily $<= tau$
+
+On lemma 2
+
+$
+  "PED"(q,s)=min_(m in M(q,s))(m_(|q|)) \
+  tack  "PED"(q,s) = k => exists m_1  in M(q,s), "st." m_1(|q|)=k
+$
+
+This is what the paper implies.
+
+$
+forall (q,s), "ped"(q,s) = k => exists m_1(q_i,s_j), "st." m_1(|q|)=k \
+"given" m_1(|q|)=k, forall s in m_1, "ped"(q,s) <= k 
+$
+
+$m:=(q_i,s_j)=(i,n=s_j,"ed")$
+
+Prove $ M={m | m(|q|)<=k} "produces an exhaustive" R, forall s in R, "ped"(q,s)<=k $
+
+$
+forall s, "ped"(q,s)=k_1<= k => exists m_1(|q|)=k_1<=k, m_1 in M
+$
+
+Inverted Index $f_i: d->c->"vec"_"node"$ 
+
+== Theorem for $m_1$
+
+Further reducing the search range
+
+By inferring from the requirement that $m_2(|q|-1,|n_2|-1)<=tau$.
+
+$
+m_1=(i_1,n_1=(c_1,d_1)) \
+cases(
+k=m_1(|q|-1,|n_2|-1) = m_1."ed"+max(|q|-1-i_1,|n_2|-1-|n_1|) <= tau \
+k>=|n_2|-1-|n_1| 
+) \ 
+=> |n_2|-1-|n_1| <= tau => |n_2|<=|n_1|+tau+1
+$
+
+which holds, given $m_1$ exists
+
+== Theorem when $m.i < |q|$
+
+$
+beta = {m|m in A(q_i) and m.i < i=|q|} \
+
+forall m, i, cases(
+  m_i=m."ed"+ i-m.i,
+  m_(i-1)=m."ed"+(i-1)-m.i = m_i-1
+)
+\
+m in beta => m in A_(i-1) \
+m_(i)<=tau=>m_(i-1)=m_i-1=tau-1<=tau => m in A_(i-1)
+\
+m in A_(i-1) arrow.r.double.not m in beta
+\
+forall m in A_i, m.i<=i
+$
