@@ -1,4 +1,6 @@
 
+Notes for http://www.vldb.org/pvldb/vol9/p828-deng.pdf
+
 #heading(numbering: "1.", "Matching prefix")
 
 \
@@ -54,8 +56,6 @@ $
 Therefore $M(q_(i-1),n."parent")$ (the previous matchings) is not needed, but only the relevant subset.
 
 Q2: How is $A(q_(i-1))$ exhaustive by that algorithm. ie. prove for some q $forall  m_(|q|) <= tau => m in A_q$
-
-#pagebreak()
 
 For some $q, |q|=i, forall  m_(|q|) <= tau => m in A_q$
 $
@@ -193,16 +193,199 @@ which holds, given $m_1$ exists
 
 $
 beta = {m|m in A(q_i) and m.i < i=|q|} \
+alpha = {m|m in A(q_i) and m.i = i=|q|}\
 
 forall m, i, cases(
-  m_i=m."ed"+ i-m.i,
+  m_i=m."ed"+ i-m.i,  
   m_(i-1)=m."ed"+(i-1)-m.i = m_i-1
 )
 \
-m in beta => m in A_(i-1) \
+forall m in beta => m in A_(i-1) \
 m_(i)<=tau=>m_(i-1)=m_i-1=tau-1<=tau => m in A_(i-1)
 \
 m in A_(i-1) arrow.r.double.not m in beta
 \
-forall m in A_i, m.i<=i
+forall m in A_i, m.i<=i => forall m in A_(i-1), m.i <= i-1<i
 $
+
+Therefore in original code it filters the set, $A_(i-1)$ before taking it.
+
+== Node and inverted  index
+
+$
+n={|n|="depth",c="character",N,S} \
+N "for set of descendents",
+S "for set of strings" \
+f_i:d->c->vec_n
+$ 
+
+When searching, it looks for 
+$f_i (d,c) sect n.N$, as (end) matchings.
+
+Process of $sect$ takes a binary search. 
+$vec_n$ is a sorted list, N is a range.
+
+for two nodes $n_1$ is a descendant of $n_2 <=> n_1.N subset n_2.N$ 
+
+$
+ f_i (d,c)
+$
+
+The paper proposes to *aggregate* matchings $m(i,n)$ by node, which removes redundant binary search. For each $m_2$, $m_1$ are enumerated group by group. 
+
+For $N_1=n_1.N subset n_2.N$, the binary search of $n_2$ is dropped, checks are performed on $N_1$, with some unnecessary nodes, but the search should be more expensive. The checks themselves suffice, so using $N_1$ instead of $N_2$ does not cause any problem.
+
+== Active matching set
+
+Lemma 2,
+
+$
+forall (q,s), "ped"(q,s)=min_(m in M(q,s))m_(|q|) \
+A_i => forall m in A_i, m_(|q|=i)<=tau \
+=> (forall m, forall s in m.S, exists m_1=m in M(q,s), m_1(|q|)=k<=tau \
+=>"ped"(q,s)<= k
+)
+$
+
+Any $s$ with that matching has a ped of at most k.
+
+== TopK
+
+$
+q, R_q "for results of" q
+$
+
+Q1: Does the paper mean, by top-k, $|R_i|=k$  must be true ?
+
+$
+R_i:= R(q_i) \
+forall s in R_(i-1), "ped"(q,s)<="ped"(q_(i-1),s) + 1\
+=> R_(i-1) subset R_i "with ped upper bound (otherwise trivial)" \
+=> (forall R_(i-1),R_i  => b_i <= b_(i-1) +1)
+$
+
+By deleting one char from $q$, which is the upper bound. 
+
+$
+"the trivial case": forall s, "ped"(q,s)=k => s in R_i
+$
+
+$
+p_1:forall (q,s,i), "ped"(q_i,s) >= "ped"(q_(i-1),s) \
+"when both sets are not capped":forall s in S => s in R_i and s in R_(i-1)  => p_1 
+$
+
+$
+b_i:="ped"(q_i,s_b^i)=max_(s in R_i)("ped"(q_i,s))
+$ (defines notation the associated s)
+
+To prove $b_i >= b_(i-1)$
+
+$
+cases(
+  1. s_b^i = s_b^(i-1) =>_p_1 "ped"(q_i,s_b^i) >=  "ped"(q_i,s_b^(i-1)) \
+  2. s_b^i != s_b^(i-1): forall s in R_i\,s != s_b^i =>  "ped"(q_i,s_b^i)>= "ped"(q_i,s)  \
+  s_b^(i-1) in R_i => b_i = "ped"(q_i,s_b^i) >= b_(i-1)
+)
+$
+
+=== More, on the assumptions
+
+Treating them as stateful variables, we can always add $R_(i-1)$ to $R_i$. $forall s in R_(i-1), "ped"(q,s)<="ped"(q_(i-1),s) + 1$. Thus this subset of $R_i$ has a max ped of $b_(i-1) + 1$. Trivially, its always possible to add some absurdly high-ped $s$ to $R_i$.
+
+In the first case, by $p_1$, $b_i >= b_(i-1)$. In the second case, any other string has a ped $<=$ that of $b_i$, which includes $b_(i-1)$
+
+Therefore, we assume we always want to get _best_ or better matchings into $R$, which is in motion. Thus, $b_i <= b_(i-1) + 1$ because we can always use $R_(i-1)$ as the upper bound.
+
+In the same kind of motion, $b_i$ is either from $s_b^(i-1)$ or some other string with worse ped. Again, we can always add $s_b^(i-1)$ to $R_i$. Nothing prevents this. Now we have added $s_b^(i-1)$. We discuss the result by two cases, by making two hypotheses.
+
+$
+b_i = b_(i-1) "or" b_(i-1) + 1
+$
+
+If $s_b^(i-1) in.not R_i$, we want $forall s in R_i, "ped"(q,s)<=s_1 in (K=S-R_i) forall s_1$
+
+$
+"by" b_i = "ped"(q,s_b^i), s_b^i  in R_i, s_b^(i-1) in K => b_i <= b_(i-1) \
+R_i != phi.alt
+$
+2. $s_b^i in R_i => b_i >= b_(i-1)$
+
+It seems $R_i$ is treated as a changing variable. 
+
+=== Reiterate
+
++ $R_i= phi.alt$
+
+  There is no $b_i$. 
+
++ $R_i = {"any" s, "ped"(q,s)=0}$
+
+  $b_i = 0 <= b_(i-1)$
+  In this case no theorems stated in the paper work. 
+
++ $exists s_1 in R_(i-1) and s_1 in R_i$ 
+
+  $forall s, "ped"(q,s)<="ped"(q_(i-1),s) + 1\
+  => "ped"(q,s_1)<="ped"(q_(i-1),s_1) +1 \
+  forall (q,s,i) "ped"(q_i,s) >= "ped"(q_(i-1),s) \
+  => "ped"(q,s_1) >= "ped"(q_(i-1),s_1) \
+\
+
+  $
+  
+=== New theorem 
+
+$
+forall s in R_(i-1) => "ped"(q_(i-1),s) <= "ped"(q,s) <="ped"(q_(i-1),s) + 1
+$
+
+This sets the bounds of the s, which can be added to $R_i$ when necessary.
+
+$
+forall s in R_(i-2) => "ped"(q_(i-2),s) <= "ped"(q_(i-1),s) <= "ped"(q,s) <="ped"(q_(i-1),s) + 1 <= "ped"(q_(i-2),s) + 2\
+"ped"(q_(i-1),s) <= "ped"(q_(i-2),s) + 1
+$
+
+The bounds are determined by *available information*.
+
+- With $ "ped"(q_(i-2),s)$, we can determine a coarse bound.
+- With $"ped"(q_(i-1),s)$, it can be further narrowed down.
+
+== Revisitng basic concepts
+
+A matching $m={q_i,s_j}$. This should be the complete information. 
+
+A node is either $n=phi.alt$, or $n=s_j$ (complete information)
+
+$m$ can be used to calculate an upper bound of ED, for any $q,s$. The function only requires $|q|, |s|$, which is $m(|q|,|s|)=m."ed"+max(|q|-m.i,|s|-m.j)$.
+
+m can be used to calculate an upper bound of PED, for any $q$. The function only requires $|q|$
+$
+m(|q|)=m."ed"+|q|-m.i
+$
+
+Here, "any $q$" must extend $q_i$. ($q_i = q[1,i]$). Otherwise $m."ed"$ makes no sense.
+
+// Theorems
+
+=== Theorem upper-bounding PED of Leaves
+
+Given a $m$ and a $|q|$, we can determine the upper bound of PED for all strings sharing $m$. It doesn't even matter what $q$ is.
+
+This can be deduced by supposing $M(q,s)={m}$, applying the equation in the paper, and the actual set can only add more members so it can only get lower.
+
+$
+forall s in n_m.S => m in M(q,s) => "ped"(q,s) <= m(|q|)
+$
+
+=== Theorem upper-bounding ED of leaves
+
+calculate a upperbound ED, $x= m(|q|,|s|)$, given $|q|,|s|=k$, 
+
+$
+forall s in n_m.S and |s|=k => m in M(q,s) => "ed"(q,s) <= x= m(|q|,|s|)
+$
+
+== b-matching
+
