@@ -176,18 +176,121 @@ Inverted Index $f_i: d->c->"vec"_"node"$
 
 Further reducing the search range
 
-By inferring from the requirement that $m_2(|q|-1,|n_2|-1)<=tau$.
+We require $m_1(|q|-1,|n_2|-1)<=tau$.
+
+$
+m_1(|q|-1) <= m_1(|q|-1,|s|) <= tau => m_1 in A(q_(i-1))
+$
 
 $
 m_1=(i_1,n_1=(c_1,d_1)) \
 cases(
-k=m_1(|q|-1,|n_2|-1) = m_1."ed"+max(|q|-1-i_1,|n_2|-1-|n_1|) <= tau \
+"we require" k=m_1(|q|-1,|n_2|-1) = m_1."ed"+max(|q|-1-i_1,|n_2|-1-|n_1|) <= tau \
 k>=|n_2|-1-|n_1| 
 ) \ 
-=> |n_2|-1-|n_1| <= tau => |n_2|<=|n_1|+tau+1
+=> |n_2|-1-|n_1| <= tau => |n_2|<=|n_1|+tau+1 \
+"by defintion of m(q,s)", q>=m.i and s>=m.j \
+=> |n_2|>=|n_1|+1
+\
+cases(
+|q|-1-i_1 <=tau => i_1 >= |q|-1-tau  \ 
+m_1."ed" <= tau
+) "this is per" m_1 ", the paper didn't talk about this" 
 $
 
-which holds, given $m_1$ exists
+which holds, given $m_1$ exists.
+
+$
+forall m_1,m_1(alpha,|n_2|-1) <= tau 
+=> |n_2| in [ |n_1|+1,|n_1|+tau+1 ]
+\
+"Narrow down the search domain by" P(m_1,n_2) => Q(m_1,n_2) "which is an interval" \
+"Make sure" forall n_2, P(m_1,n_2) \
+P, Q "for propositions"  \
+$
+
+Every set found by $P$ is a partial. 
+
+$m_1(|q|-1,|n_2|-1)<=tau tack$ the matching set in question $M_t=M(q_(-1),n_2.s_(-1))$
+
+The partials are aggregated by iterating over $m in M_t$. For each iteration find a partial.
+
+$
+forall m_1 in M_t => m_1(|q|-1) <= tau "which means we probably already have it" \
+M_t => M_2 "this process may expand the set"
+$
+
+$M_t$ can not be obtained, as it's different from each $n_2.s_(-1)$.
+
+We just iterate over $M_2$.  
+
+So, this is the core algorithm that produces matchings based on previous matchings.
+
+In $m_1(|q|-1) <= m_1(|q|-1,|s|)=x$, the $x$ part looks creative. The right-hand of *max* can be anything. 
+
+$
+m_1(|q|-1) <= m_1(|q|-1,|n|)
+$
+
+Any number put in the $|n|$ place, due to the nature of this formula, must mean a node depth.
+
+By introducing, the $m(a,b)$ on the right, we establish a variable of $|n|$.
+
+The end goal is to have $"ed"(q,n_2)<=tau$
+
+$
+m_2(|q|) =_(i=|q|) m_2."ed"  <= tau => forall s in m_1.S, "ped"(q,s)<=tau
+$
+
+$m_1(i-1,|n_2|-1)$ is an upper bound of $"ed"(q_(i-1),n_2."parent")$
+
+$
+"ed"(q_(i-1),n_2."parent") =_(q[i]=n_2."char") "ed"(q_i,n_2)
+$
+
+Therefore $m_1(|q|-1,|n_2|-1)<=tau$ but it's an over-requirement.
+
+$
+S_(-1):={s,|s|=|n_2|-1}, M_(-1)=M(q_(i-1),n_2."parent"), m_1 in M_(-1)
+$
+
+The condition is only satified by a subset of $S_(-1)$, denote it as $S'$
+
+$
+forall s in S' => m_1 in M_(-1) (=> s in n_1.S) \
+ p_1 :m_1(|q|-1,|s|)<=tau
+$
+
+The target set is $S_t = {s, |s| = |n_2|-1 and "ed"(q_(i-1),n_2."parent")<=tau}$
+
+Not every $s in S_t$ satisfies $p_1$
+
++ If $m_1(|q|-1,|s|) = "ed"(q_(i-1),s)$, the condition keeps $s$, and $s$ meets the goal. \
+  There is no $<$ case. \
+  $m_1$ is the minium in M.\
+  Denote $S(m_1), forall s in S(m_1) => m_min=m_1$. 
+  We can retrieve the complete $S(m_1)$ by this condition
++ If $m_1(|q|-1,|s|) > "ed"(q_(i-1),s)$, the condition might drop $s$ \
+  Nodes in this case are dropped.
+
+By iterating over every $m in M_(-1)$, for each iteration, we get $S(m)$ \
+
+The loop composes the $S_t$, which is complete.
+
+As, for each $s' in S_t$, the associated $M=M_(-1)$
+
+$
+cases(
+m'_min in M_(-1) \
+forall m in M_(-1) => S(m) subset.eq S_t
+) => s' in S(m'_min) subset.eq S_t
+\
+S_T = S_t "extending each string by" q[i] \
+forall s in S_T, 
+"ed"(q,s) <=tau
+$
+
+
 
 == Theorem when $m.i < |q|$
 
@@ -384,8 +487,12 @@ $
 calculate a upperbound ED, $x= m(|q|,|s|)$, given $|q|,|s|=k$, 
 
 $
-forall s in n_m.S and |s|=k => m in M(q,s) => "ed"(q,s) <= x= m(|q|,|s|)
+forall s in n_m.S and |s|=k => m in M(q,s) => "ed"(q,s) <= x= m(|q|,|s|) \ 
+
+forall s in n_m.S and |s| < k => m in M(q,s) => "ed"(q,s) <= m(|q|,|s|) < x
 $
+
+The situation gets complex for $|s| > k$, and it's not worth talking about.
 
 == b-matching
 
