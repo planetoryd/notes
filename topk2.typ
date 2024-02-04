@@ -1,6 +1,13 @@
 
 Notes for http://www.vldb.org/pvldb/vol9/p828-deng.pdf
 
+- Theorems have been further generalized than what is in the paper
+- Corretions for errors
+- More precise defintions
+- Better notation
+
+#set heading(numbering: "1.")
+
 #heading(numbering: "1.", "Matching prefix")
 
 \
@@ -172,7 +179,9 @@ $
 
 Inverted Index $f_i: d->c->"vec"_"node"$ 
 
-== Theorem for $m_1$
+== Theorem for $m_1$ <algo_expand>
+
+Let me call this, mathing set expanding algorithm, as it expands the matching set based on an updated $q$, finding all m such that $m."ed" <= tau$, based on $M_t$.
 
 Further reducing the search range
 
@@ -217,12 +226,12 @@ The partials are aggregated by iterating over $m in M_t$. For each iteration fin
 
 $
 forall m_1 in M_t => m_1(|q|-1) <= tau "which means we probably already have it" \
-M_t => M_2 "this process may expand the set"
+M_t subset.eq M_2 = {m_1|m_1(|q|-1) <= tau}
 $
 
-$M_t$ can not be obtained, as it's different from each $n_2.s_(-1)$.
+$M_t$ is exotic and can not be obtained, as it's different from each $n_2.s_(-1)$. 
 
-We just iterate over $M_2$.  
+We just iterate over $M_2$. When we find an $n_2$, we check that $P(m_1,n_2)$ holds.
 
 So, this is the core algorithm that produces matchings based on previous matchings.
 
@@ -439,14 +448,14 @@ It seems $R_i$ is treated as a changing variable.
   
 === New theorem 
 
-$
-forall s in R_(i-1) => "ped"(q_(i-1),s) <= "ped"(q,s) <="ped"(q_(i-1),s) + 1
-$
-
-This sets the bounds of the s, which can be added to $R_i$ when necessary.
+I dislike the notion of $b_i$ as it is ambiguous. 
 
 $
-forall s in R_(i-2) => "ped"(q_(i-2),s) <= "ped"(q_(i-1),s) <= "ped"(q,s) <="ped"(q_(i-1),s) + 1 <= "ped"(q_(i-2),s) + 2\
+forall s => "ped"(q_(i-1),s) <= "ped"(q,s) <="ped"(q_(i-1),s) + 1
+$
+
+$
+forall s => "ped"(q_(i-2),s) <= "ped"(q_(i-1),s) <= "ped"(q,s) <="ped"(q_(i-1),s) + 1 <= "ped"(q_(i-2),s) + 2\
 "ped"(q_(i-1),s) <= "ped"(q_(i-2),s) + 1
 $
 
@@ -496,3 +505,109 @@ The situation gets complex for $|s| > k$, and it's not worth talking about.
 
 == b-matching
 
+$
+forall m in A_i <=> m_(|q|) <= tau \
+m_(|q|)=_(m.i=|q|)m."ed" <= tau \
+m.i<|q| => m."ed" < m_(|q|)<= tau \
+\
+m={q_i,s_j}
+$
+
+For a continuous query $q$.
+
+*Definition* $forall m in M(q_i) =>$ $m."ed"<=b <=>$ m is a b-matching of $q_i$
+
+$
+forall s in S, q =>"ped"(q,s)=k <= b 
+=> "ped"(q,s)= exists m_min (|q|)=k=m."ed"+|q|-m_min .i <=b 
+=> m."ed" <= b
+\
+m_min := "any" m "at" min_(m in M(q,s,))(m_(|q|)) := m_min^M(p,q)
+$
+
+Suppose we have a set $P(q,b),forall m."ed"<=b => m in P(q,b)$
+
+$forall s in S, "ped"(q,s)<=b => m_min."ed"<=b =>m in P(q,b)$ 
+
+Existence of such a string $=>$ It's reachable from $P(q,b)$
+
+Notice, there is an error in `6.2 Calculating the b-Matching Set`.
+
+== $P_1=P(q_i,b) -> P_2=P(q_i,b-1)$
+
+$
+P_2 = cases(
+  m.i < i => m in P_1 
+  \
+  m.i = i => "use the expansion algo to find all "  m "such that" m."ed" <= tau =_("here") b-1
+) \ 
+m.i < i and m."ed" <= b-1 <= b => (
+  forall m in P_2 => m in P_1 ,\
+  exists m in P_1 in.not P_2
+)
+$
+
+// prove the adapted algo of @algo_expand 
+
+=== Reiterated @algo_expand
+
+The goal is to find *all* $n_2$ such that $"ed"(q_i,n_2)<=tau$.
+
+$
+forall n_2 => "ed"(q_(i-1), n_2.p)="ed"(q_i,n_2) "by assumption" \
+forall m_1 => forall n_2 in m_1.D => (
+  forall q => alpha: m_1(|q|-1,|n_2|-1) <= tau => cases(
+    |n_2| in [ |n_1|+1,|n_1|+tau+1 ] \
+    i_i >= |q| - 1 - tau \
+    m_1."ed" <= tau
+  )
+)
+$
+
+$
+P => Q tack not P => not Q
+$
+
+We want a jump from $m_1(a,b)$ to $"ed"(q_(i-1),n_2.p)$. That requires $m_1=m_min in M(q_(i-1),n_2.p)$.
+
+For any function $f: m_1 -> N$, we compute $f(m_1)$ over all $m_1 in M(q_(i-1),n_2.p)$, collect all results as $N_a$
+
+$
+exists m_1=m_min in M => f(m_1) in N_a
+$
+
+If optimization were possible, we can try narrowing $M$.
+
+// TODO
+
+== $P_2 -> P_3= P(q_i,b)$
+
+We just need $P_4=P_3-P_2=$ exact b-matchings $=>m."ed"=b$.
+
+Now, we are considering the $P_4$ as if we already have it. 
+
+We consider every $m in P_4$ 
+$
+m=(q_i,s_j), s[i]=_("by def")q[j] => m."ed"="ed"(q_i,s_j)="ed"(q_(i-1),s_(j-1)) \
+=> exists m_1 := m_min^(m in M(q_(i-1),s_(j-1))), m_1(i-1,j-1)=m."ed"  \
+=> m_1."ed"<=m_1(i-1,j-1)=m_1."ed"+max(...)=m."ed"=b \
+=> cases(
+  m_1."ed"=b => m_1 in P_4,
+  m_1."ed"<=b => m_1 in P_2
+)
+$ 
+
+The calculation requires a different algorithm. 
+
+
+$
+  P_4={m={q_i,s_j}={i,n,"ed"} | forall m_1 in P_2, m in m_1, m."char" = q[m.i] 
+  \ and m_1.i < m.i "as" m_1 "is expected to be" m_min "of" m \
+    and m(i-1,j-1)=b and beta(m)
+  } \
+  beta(m) = forall "ed" exists.not m_2={m.i,m.j,"ed"} in P_2 \
+  q[m.i]=n "while no such" m in P_2 "which is exhaustive over ed" <= b-1 
+  =>  "ed"(q_i,n) > b-1 \
+  m(i-1,j-1)=b "reveals one upper bound, so" "ed"(q_i,n) <= b \
+  "Therefore, " m(i-1,j-1)=b and beta(m) => "ed"(q_i,n)=b
+$
